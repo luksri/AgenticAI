@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Ergonomic Alerts",
+  "version": "1.0",
+  "description": "Ergonomic alerts for standup, drinking water, stretching, eye rest, and walking.",
+  "permissions": [
+    "alarms",
+    "notifications"
+  ],
+  "action": {},
+  "background": {
+    "service_worker": "background.js"
+  }
+}

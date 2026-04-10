@@ -1,0 +1,22 @@
+i wanted to build a google chrome extension for Ergonomic alerts. these alerts will be:
+1. standup time
+2. drink water time
+3. stretch time
+4. eye rest time
+5. walk time
+
+consider a normal person work hours 9am to 6pm. 
+
+1. standup time: for every 1h, 10 mins for standup
+2. drink water time: drink a min of 3hr of water per day
+3. stretch time: for every 2h, 5 mins for stretching
+4. eye rest time: for every 20 mins, 20 secs for eye rest
+5. walk time: for every 2h, 5 mins for walking
+
+these must be come as alerts and for every alert show the significance of doing the activity to make it more interesting 
+for the user.
+
+make it as simple as possible.
+
+ask me if you require additional context. 
+
