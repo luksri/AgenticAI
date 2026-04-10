@@ -22,3 +22,6 @@ This extension runs quietly in the background and sends you periodic native Chro
 ## How it Works
 
 The extension uses the `chrome.alarms` and `chrome.notifications` APIs to schedule and deliver reminders without needing a constant background page. Alerts are intelligently scoped to only trigger during typical work hours (9 AM to 6 PM) so they won't disturb your personal time.
+
+## Demo Video link:
+**https://youtu.be/rO7NTVjvYI8**
