@@ -1,0 +1,19 @@
+lets create a google chrome extension by combining the power of Gemini to spice up the user mood
+with a joke or a nice music from their playlist or by some recommendations.
+
+To begin with:
+1. start with humor. ask the gemini a joke and display it in the extension popup.
+2. and then ask for how is the day
+3. based on user response, gemini must understand what is the current mood of the user.
+4. findout what is he doing and fetch the time of the display
+5. based on the mood and the activity, gemini must recommend something to the user either phone 
+a friend or listen to some music that can make him happy or something else.
+6. sometime user wants to spice up the existing mood then gemini must recommend something that can 
+make him more happy or something else.
+7. track everything and observe the changes.
+8. based on the user response, gemini must understand what is the current mood of the user.
+
+give me a nice plan on how you are executing it and feel free to ask me questions if you need to.
+and enhance the idea. Expecting a python program to do the heavy lifting and chrome extension will be light on weight.
+
+i have downloaded spotify dataset from kaggle and kept at ./spotify directory. use it effectively.

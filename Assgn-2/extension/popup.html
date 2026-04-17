@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Spicer</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Mood Spicer ✨</h1>
+    </header>
+
+    <div id="joke-card" class="card glassmorphism">
+      <p class="section-title">Joke of the moment</p>
+      <p id="joke-text">Fetching a joke for you...</p>
+    </div>
+
+    <div class="card glassmorphism input-section">
+      <label for="day-input">How is your day going?</label>
+      <textarea id="day-input" placeholder="E.g., I'm tired from coding all day..."></textarea>
+      
+      <label for="activity-input">What are you doing right now?</label>
+      <input type="text" id="activity-input" placeholder="E.g., working, scrolling, studying">
+
+      <button id="analyze-btn" class="btn primary-btn">Spice up my mood!</button>
+    </div>
+
+    <!-- Hidden until analyzed -->
+    <div id="results" class="hidden">
+      <div class="card glassmorphism result-card">
+        <p><strong>Detected Mood:</strong> <span id="mood-text"></span></p>
+        <p><strong>Recommendation:</strong> <span id="activity-rec-text"></span></p>
+        
+        <div class="song-box">
+          <p class="section-title">🎵 Song for you</p>
+          <p id="song-name" class="song-title">Song Name</p>
+          <p id="song-artist" class="song-artist">Artist</p>
+          <a id="song-url" href="#" target="_blank" class="btn secondary-btn" style="display: none;">Listen on Spotify</a>
+        </div>
+      </div>
+      
+      <button id="spice-more-btn" class="btn vibrant-btn">Spice it up MORE! 🔥</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
