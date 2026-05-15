@@ -1,0 +1,15 @@
+lets create something new. 
+1. a chrome extension that can stream the data to my backend. this can be  selected text, or a web page or a document.
+   i wanted source of the information also to be shared to backend. 
+   i wanted it to flag the content with a name so that all the information is being collected is stored under it.
+   a youtube video link can also be sent to backend.
+2. for backend:
+    2.1 chrome extension sends topic name, data, source information. 
+    2.2 create a RAG. 
+    2.3 create an agent that can query RAG. I wanted this as MCP
+    2.4 if youtube video link is received then use YouTube MCP to get the transcript and store it in RAG.
+
+3. for frontend:
+    3.1 user PrefabUI for chat window
+    3.2 for any given user query, agent must check the knowledgebase and retrieve all relevant information
+    3.3 use prefab widgets to show some statistics of the data fetched.

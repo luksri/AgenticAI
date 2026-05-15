@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledge Collector</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <span class="logo-icon">🧠</span>
+        <span class="logo-text">Knowledge Collector</span>
+      </div>
+      <div id="status-dot" class="status-dot"></div>
+    </div>
+
+    <!-- Active Topic -->
+    <div class="section">
+      <label class="section-label">Active Topic</label>
+      <div class="topic-input-row">
+        <input
+          type="text"
+          id="topic-input"
+          class="topic-input"
+          placeholder="Enter topic name..."
+          autocomplete="off"
+        />
+        <button id="set-topic-btn" class="btn btn-primary">Set</button>
+      </div>
+      <div id="active-topic-display" class="active-topic-badge hidden">
+        <span class="badge-icon">📁</span>
+        <span id="active-topic-name"></span>
+        <button id="clear-topic-btn" class="clear-btn" title="Clear topic">✕</button>
+      </div>
+    </div>
+
+    <!-- Last Action Status -->
+    <div id="last-result" class="section result-section hidden">
+      <div id="result-message" class="result-message"></div>
+      <div id="result-time" class="result-time"></div>
+    </div>
+
+    <!-- Existing Topics -->
+    <div class="section">
+      <label class="section-label">
+        Existing Topics
+        <button id="refresh-btn" class="refresh-btn" title="Refresh">↻</button>
+      </label>
+      <div id="topics-list" class="topics-list">
+        <div class="loading-text">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Footer link -->
+    <div class="footer">
+      <a href="http://localhost:5175" target="_blank" class="open-ui-link">
+        Open Chat UI ↗
+      </a>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Knowledge Collector",
+  "version": "1.0",
+  "description": "Stream selected text, web pages, PDFs, and YouTube links to your local Knowledge Base.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Knowledge Collector"
+  }
+}

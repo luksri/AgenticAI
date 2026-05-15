@@ -1,0 +1,16 @@
+# Python backend
+backend/venv/
+backend/__pycache__/
+backend/.env
+backend/logs.json
+*.pyc
+
+# Dataset archives
+archive.zip
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
