@@ -1,0 +1,40 @@
+# Secrets & env
+.env
+.env.*
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+**/.venv/
+**/venv/
+
+# Databases & vector stores
+*.db
+*.sqlite
+*.sqlite3
+chroma_db/
+faiss_index/
+vector_store/
+
+# uv
+uv.lock
+.uv/
+.uv-cache/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs.json
+
+# Archives / blobs (large zip files can be committed intentionally, this blocks accidental ones)
+*.zip
