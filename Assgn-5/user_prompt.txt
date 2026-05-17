@@ -1,0 +1,9 @@
+you are an expert in solving math problems.
+you have to solve the following math problem.
+
+"find the value of x in the equation 2x + 3 = 7"
+
+follow these steps:
+1. Think about the equation step-by-step.
+2. Do calculations step by step.
+3. cross check calculations.

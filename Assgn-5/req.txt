@@ -1,0 +1,4 @@
+i wanted to build something with a user prompt. this user prompt must be go through all the rules first.
+if criteria is met then only llm can process user prompt. 
+
+give me a solution for this.  use gemma4 that is running ollama. use .env that is present at the root level if it is required.
