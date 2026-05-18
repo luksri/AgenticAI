@@ -38,3 +38,14 @@ logs.json
 
 # Archives / blobs (large zip files can be committed intentionally, this blocks accidental ones)
 *.zip
+
+Assign-6/session_6_files/
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.zip   

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "8cea67b2dd304a6f944006fa95a50c91",
+    "kind": "fact",
+    "keywords": [
+      "birthday",
+      "mother",
+      "date",
+      "may",
+      "2026"
+    ],
+    "descriptor": "User's mother's birthday is May 15, 2026",
+    "value": {},
+    "artifact_id": null,
+    "source": "user_query",
+    "run_id": "ea14e098",
+    "goal_id": null,
+    "confidence": 1.0,
+    "created_at": "2026-05-18T10:27:29.926738Z"
+  },
+  {
+    "id": "d43e70c9227049958c35ba4830552881",
+    "kind": "scratchpad",
+    "keywords": [
+      "birthday",
+      "mother",
+      "query",
+      "date"
+    ],
+    "descriptor": "User is inquiring about their mother's birthday",
+    "value": {},
+    "artifact_id": null,
+    "source": "user_query",
+    "run_id": "25143e46",
+    "goal_id": null,
+    "confidence": 0.9,
+    "created_at": "2026-05-18T10:28:34.128477Z"
+  },
+  {
+    "id": "aa722dbfb988438780c8a31960beeae7",
+    "kind": "fact",
+    "keywords": [
+      "birthday",
+      "mother",
+      "may",
+      "2026",
+      "reminder"
+    ],
+    "descriptor": "User's mother's birthday is May 15, 2026",
+    "value": {},
+    "artifact_id": null,
+    "source": "user_query",
+    "run_id": "95cc5b7f",
+    "goal_id": null,
+    "confidence": 1.0,
+    "created_at": "2026-05-18T10:29:39.659348Z"
+  }
+]

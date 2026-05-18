@@ -1,0 +1,94 @@
+{
+  "worker": {
+    "gemini": {
+      "calls_today": 56,
+      "tokens_today": 63763,
+      "day_start": 1779062400.0,
+      "last_call": 1779100493.088304,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "ollama": {
+      "calls_today": 30,
+      "tokens_today": 89935,
+      "day_start": 1779062400.0,
+      "last_call": 1779100495.468739,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "nvidia": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "groq": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "cerebras": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "openrouter": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "github": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    }
+  },
+  "router": {
+    "cerebras": {
+      "calls_today": 30,
+      "tokens_today": 10853,
+      "day_start": 1779062400.0,
+      "last_call": 1779100494.994433,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "groq": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "nvidia": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    },
+    "github": {
+      "calls_today": 0,
+      "tokens_today": 0,
+      "day_start": 1779062400.0,
+      "last_call": 0.0,
+      "unavailable_until": 0.0,
+      "unavailable_reason": ""
+    }
+  }
+}

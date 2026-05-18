@@ -1,0 +1,103 @@
+read the instructions from the req.txt file. we are required to implement agent with four roles: memory, perception, decision, and action. lets build it step by step.
+
+instructions:
+------------
+
+Role	Responsibility	Invoked per iteration	LLM call?
+Memory	A typed service that stores facts, preferences, tool outcomes, and scratchpad entries. Exposes read(query, history) and write methods.	Always called for read. Called by Action for record_outcome.	Only for the ambiguous classifying write. The keyword search read uses no LLM.
+Perception	The orchestrator. Reads the query, the memory hits, and the history, and emits the current goal list with done flags and optional artifact attachments.	Yes, every iteration.	One LLM call routed via auto_route="perception" (pinned to Gemini in this session).
+Decision	Picks the next action for one bounded goal. Returns either a final answer in plain text, or a single tool call to MCP.	Yes, once per iteration when there is an unfinished goal.	One LLM call routed via auto_route="decision".
+Action	Dispatches the chosen MCP tool. Pushes large results to the artifact store and returns a short descriptor.	Only when Decision returns a tool_call.	None. Pure dispatch.
+
+refer flow diag:
+    flow_diag.png
+
+
+The boundaries between roles are well typed. Memory.read returns list[MemoryItem]. Perception.observe returns Observation. Decision.next_step returns DecisionOutput. Action.execute returns tuple[str, str | None] (descriptor, optional artifact id). The history that the loop accumulates is a list of plain dicts, but every event in the history mirrors one of these typed shapes.
+
+The four roles in Session 6 each consume and produce instances of these models, so the boundary between roles is checked at every transition.
+
+Memory as a typed service
+------
+Memory in the Session 6 architecture is a service. Other roles invoke its read and write methods. The service sits beside the loop as an external store and is called when the loop or another role needs to consult it.
+
+The V2 cohort's Memory layer was a list of strings with a recall(query) method that sent the entire list plus the query to an LLM. That implementation could not afford an LLM call per read and could not return more than one item at a time. Session 6's Memory implementation lifts both constraints. Reads are pure keyword search. Writes are typed.
+
+memory kinds:
+    refer memory_kinds.png
+
+all four kinds in a single JSON file
+
+memory read operations:
+    refer memory_read_ops.png. The keyword search uses a small stopword list and a simple lowercase-token intersection. It scales to hundreds of items and stays fast enough to run before every Perception call.
+
+memory write operations:
+    refer memory_write_ops.png. 
+
+The asymmetry matters. The LLM call at write time is what makes future reads cheap. When a user says "John's birthday is 15 May 2026," the classifier extracts the kind (fact), the canonical structure ({"entity": "John", "attribute": "birthday", "value": "2026-05-15"}), and a keyword list (["John", "birthday", "May", "2026"]). The keyword search at read time then finds this item with no LLM call. 
+
+Persistence. 
+------------
+All items live in a single JSON file at state/memory.json. The agent6 loop loads on first read and writes back after every mutation. Across runs, the same JSON file is reused, so preferences and facts persist. Clearing the file resets the agent.
+
+some notes:
+---------
+1.   The Memory implementation in this session does not use embeddings. Keyword overlap is sufficient at the scale a single student's agent reaches.
+2.   Scratchpad as a separate kind is a small fiction. In a strict design, run-scoped working state would live in a separate object and Memory would persist only durable items. The four-kind unification gives us one interface to learn. The scratchpad disappears when the run completes; it is never read by future runs unless an LLM-classified write promotes a scratchpad item to a fact or preference.
+
+Artifacts: the parallel store for raw bytes
+----------
+When a tool produces a payload larger than a few kilobytes, the bytes are written to a separate content-addressable store. Memory holds only the handle.
+
+architectural boundaries:
+    refer artifacts_architecture.png
+
+
+
+Perception: the orchestrator
+----------------------------
+The contract that Perception fulfills can be stated as four obligations.
+
+1. If the prior goal list is empty, decompose the query into one or more
+   bounded goals, each a short imperative statement.
+
+2. For each prior goal, examine the run history. Mark the goal `done: true`
+   the moment the history contains an action that satisfies it. Once done,
+   the goal remains done in every subsequent iteration.
+
+3. For the first unfinished goal in the list, decide whether it needs raw
+   bytes from a previously fetched artifact. If yes, set the goal's
+   attach_artifact_id to one of the artifact handles in MEMORY HITS.
+
+4. Preserve goal order. Do not reorder, do not insert in the middle, do
+   not drop a goal.
+
+
+Five observations.
+-------------
+
+First, the very first thing the loop does after starting is call memory.remember(query, ...). This is the durable-memory contract. When a user types "My mom's birthday is 15 May 2026," the query carries a fact that should survive into future runs. The classification call extracts that fact and persists it. Subsequent runs find it via the keyword search.
+
+Second, the loop reads memory at the top of every iteration. Memory is consulted as a service.
+
+Third, Perception is given the prior_goals list along with the new memory hits and the history. This is what gives goals stable identity across iterations.
+
+Fourth, attachment of artifact bytes is gated on artifacts.exists(...). If Perception emits an attachment handle that does not correspond to a real artifact (a hallucination), the loop silently drops it. The defence is in addition to the position-based artifact_index scheme that prevents most hallucinations at the Perception layer.
+
+Fifth, when Decision returns an answer, the loop appends an answer event to history and continues. Perception, on the next iteration, sees the answer in history and decides whether it satisfies the current goal. Marking goals done is a Perception responsibility. Decision selects actions; it does not declare goals satisfied.
+
+
+The gateway substrate (V3)
+----------------------------
+
+Every LLM call in the four roles routes through the LLM gateway V3 at http://localhost:8101. The gateway is the same substrate Session 5 introduced, with the V3 additions described in Session 5's gateway README. The relevant features for Session 6 are summarised here.
+
+auto_route and the router pool. When a chat request carries auto_route="perception", auto_route="memory", or auto_route="decision", the gateway runs a small classifier LLM (the router pool) over a bounded envelope containing only the token count and a 800-character sample of the prompt. The classifier returns one of three tier labels (TINY, LARGE, HUGE). The gateway maps the tier to a worker failover order and dispatches the actual call. TINY queries land on small fast workers; LARGE queries land on long-context workers such as Gemini 3.1 flash-lite; HUGE returns 503 with a clear hint to chunk the input.
+
+The separation-of-concerns wall. The router pool never sees the worker's prompt, system, tools, schema, or earlier turns. It receives only {token_count, sample}. The separation is enforced in code. The request envelope sent to the router LLM physically carries only the token count and the 800-character sample. The router cannot leak agentic context into routing decisions because the agentic context never reaches it.
+
+Provider override. A caller can specify provider="g" (or any other shortcut) explicitly. The router is skipped entirely and the named provider becomes the first worker. This session uses the override on every Perception call to send Perception to Gemini. The reason was empirical: the TINY-tier worker that the router selected was too small to reliably follow Perception's multi-step procedure. The override is the gateway feature that was already designed for exactly this case.
+
+Structured output via response_format. Perception and Memory both use this feature. The gateway translates the Pydantic JSON Schema into the per-provider response_format payload, applies the necessary cleaning for each provider, and validates the parsed output server-side. Callers receive a parsed dict already validated against the schema.
+
+The Mermaid diagram below summarises which role talks to which worker in the Session 6 setup.
