@@ -127,6 +127,37 @@ def mcp_tools_for_decision(mcp_tools: list) -> list[dict]:
     return out
 
 
+def _missing_required_args(
+    tool_name: str,
+    arguments: dict,
+    mcp_tools: list,
+) -> list[str]:
+    """
+    Return the list of required argument names that are absent (or blank)
+    in *arguments* for the given *tool_name*.
+
+    Used as a code-level guard before dispatching to the MCP server so that
+    a bad LLM output (e.g. tool_call with empty arguments={}) is caught and
+    fed back into history as structured feedback rather than causing a
+    validation error on the MCP side and looping forever.
+    """
+    for t in mcp_tools:
+        if t.name == tool_name:
+            schema = (
+                t.inputSchema.model_dump()
+                if hasattr(t.inputSchema, "model_dump")
+                else dict(t.inputSchema or {})
+            )
+            required: list[str] = schema.get("required", [])
+            return [
+                r for r in required
+                if r not in arguments
+                or arguments[r] is None
+                or (isinstance(arguments[r], str) and not arguments[r].strip())
+            ]
+    return []   # unknown tool — let MCP handle it
+
+
 # ---------------------------------------------------------------------------
 # History helpers
 # ---------------------------------------------------------------------------
@@ -231,10 +262,59 @@ async def run(query: str) -> str:
 
             # ── 5b. Tool path ───────────────────────────────────────────
             import json
-            args_str = json.dumps(out.tool_call.arguments)
-            print(f"[decision]      TOOL_CALL: {out.tool_call.name}({args_str})", flush=True)
-            
-            result_text, art_id = await action.execute(session, out.tool_call)
+            tc = out.tool_call
+            args_str = json.dumps(tc.arguments)
+            print(f"[decision]      TOOL_CALL: {tc.name}({args_str})", flush=True)
+
+            # ── Guard A: duplicate call (code-enforced) ──────────────────
+            # The Decision prompt says not to repeat identical calls, but
+            # LLMs sometimes ignore it.  Catch it here and inject feedback.
+            prior_identical = any(
+                e.get("kind") == "action"
+                and e.get("tool") == tc.name
+                and e.get("arguments") == tc.arguments
+                for e in history
+            )
+            if prior_identical:
+                feedback = (
+                    f"[blocked:duplicate] {tc.name} was already called with "
+                    f"these exact arguments {tc.arguments}. Do NOT repeat it. "
+                    f"Either answer with what you already know, or call a "
+                    f"DIFFERENT tool with DIFFERENT arguments."
+                )
+                print(f"[guard]         duplicate {tc.name}() blocked", flush=True)
+                print("", flush=True)
+                history.append({
+                    "iter": it, "kind": "action", "goal_id": goal.id,
+                    "tool": tc.name, "arguments": tc.arguments,
+                    "result_descriptor": feedback, "artifact_id": None,
+                })
+                continue
+
+            # ── Guard B: required-argument validation ────────────────────
+            # Gemini can return tool_call with arguments={} and still satisfy
+            # the response_format schema (arguments is typed as `object`).
+            # Validate required fields before hitting the MCP server so we
+            # get structured feedback in history instead of a validation error
+            # that loops forever.
+            missing_args = _missing_required_args(tc.name, tc.arguments, mcp_tools)
+            if missing_args:
+                feedback = (
+                    f"[blocked:missing_args] {tc.name}() is missing required "
+                    f"arguments: {missing_args}. You MUST provide all required "
+                    f"arguments. Check the tool schema and retry with complete "
+                    f"arguments — for example, web_search requires 'query'."
+                )
+                print(f"[guard]         missing args {missing_args} for {tc.name}()", flush=True)
+                print("", flush=True)
+                history.append({
+                    "iter": it, "kind": "action", "goal_id": goal.id,
+                    "tool": tc.name, "arguments": tc.arguments,
+                    "result_descriptor": feedback, "artifact_id": None,
+                })
+                continue
+
+            result_text, art_id = await action.execute(session, tc)
             if art_id:
                 art_bytes = artifacts.get_bytes(art_id)
                 size = len(art_bytes)
@@ -248,7 +328,7 @@ async def run(query: str) -> str:
             print("", flush=True) # Blank line separating iterations
 
             memory.record_outcome(
-                tool_call=out.tool_call,
+                tool_call=tc,
                 result_text=result_text,
                 artifact_id=art_id,
                 run_id=run_id,

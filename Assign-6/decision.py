@@ -229,7 +229,11 @@ class Decision:
             resp = llm.chat(
                 user_content,
                 system=_SYSTEM,
-                auto_route="decision",   # router picks tier; no provider pin
+                auto_route="decision",   # router picks tier; no provider pin.
+                                         # Meta-response detector in _parse_output()
+                                         # catches bad TINY-tier outputs. Pinning to
+                                         # provider="g" caused Gemini rate-limits (502/503)
+                                         # after just a few rapid iterations.
                 response_format={
                     "type": "json_schema",
                     "json_schema": {
@@ -255,16 +259,50 @@ class Decision:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    # Phrases that indicate the LLM produced a meta-response about its own
+    # formatting failure rather than a real answer.  If the answer field
+    # matches any of these patterns we discard it so the caller's fallback
+    # path activates instead of returning garbage to the user.
+    _META_PHRASES: tuple[str, ...] = (
+        "apologize for the formatting",
+        "i apologize for",
+        "formatting error",
+        "json schema",
+        "conform to the required",
+        "adhere to this structure",
+        "strictly conform",
+        "next response will",
+        "i will ensure my next",
+    )
+
+    @staticmethod
+    def _is_meta_response(text: str) -> bool:
+        """Return True when *text* looks like an LLM self-correction apology."""
+        lowered = text.lower()
+        return any(phrase in lowered for phrase in Decision._META_PHRASES)
+
     @staticmethod
     def _parse_output(raw: dict) -> DecisionOutput:
         """
         Convert raw LLM dict into a DecisionOutput.
 
-        Defence-in-depth: enforce the mutual-exclusion constraint that
-        the schema alone cannot guarantee in all edge cases.
+        Defence-in-depth:
+          • Enforce the mutual-exclusion constraint that the schema alone
+            cannot guarantee in all edge cases.
+          • Detect and discard meta-responses (LLM apologising about its own
+            output format) so they never surface as the FINAL answer.
         """
         answer    = raw.get("answer")    or None
         tool_raw  = raw.get("tool_call") or None
+
+        # Detect meta / apology responses and treat them as absent
+        if isinstance(answer, str) and Decision._is_meta_response(answer):
+            print(
+                "[decision] meta-response detected and discarded; "
+                "check provider tier — consider provider=\"g\" for reliable schema follow.",
+                file=__import__("sys").stderr,
+            )
+            answer = None
 
         # Normalise empty strings to None
         if isinstance(answer, str) and not answer.strip():

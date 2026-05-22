@@ -1,49 +1,49 @@
 {
   "worker": {
     "gemini": {
-      "calls_today": 56,
-      "tokens_today": 63763,
-      "day_start": 1779062400.0,
-      "last_call": 1779100493.088304,
-      "unavailable_until": 0.0,
-      "unavailable_reason": ""
+      "calls_today": 71,
+      "tokens_today": 127662,
+      "day_start": 1779408000.0,
+      "last_call": 1779424283.574697,
+      "unavailable_until": 1779424082.508414,
+      "unavailable_reason": "upstream 503"
     },
     "ollama": {
-      "calls_today": 30,
-      "tokens_today": 93970,
-      "day_start": 1779062400.0,
-      "last_call": 1779100495.468739,
-      "unavailable_until": 0.0,
-      "unavailable_reason": ""
+      "calls_today": 42,
+      "tokens_today": 111190,
+      "day_start": 1779408000.0,
+      "last_call": 1779424137.565509,
+      "unavailable_until": 1779424078.444712,
+      "unavailable_reason": "upstream 500"
     },
     "nvidia": {
-      "calls_today": 0,
-      "tokens_today": 0,
-      "day_start": 1779062400.0,
-      "last_call": 0.0,
+      "calls_today": 2,
+      "tokens_today": 7545,
+      "day_start": 1779408000.0,
+      "last_call": 1779424067.0018308,
       "unavailable_until": 0.0,
       "unavailable_reason": ""
     },
     "groq": {
-      "calls_today": 0,
+      "calls_today": 2,
       "tokens_today": 0,
-      "day_start": 1779062400.0,
-      "last_call": 0.0,
-      "unavailable_until": 0.0,
-      "unavailable_reason": ""
+      "day_start": 1779408000.0,
+      "last_call": 1779424062.5104918,
+      "unavailable_until": 1779424122.752147,
+      "unavailable_reason": "RPM quota burned"
     },
     "cerebras": {
-      "calls_today": 0,
-      "tokens_today": 0,
-      "day_start": 1779062400.0,
-      "last_call": 0.0,
+      "calls_today": 1,
+      "tokens_today": 4808,
+      "day_start": 1779408000.0,
+      "last_call": 1779424063.307424,
       "unavailable_until": 0.0,
       "unavailable_reason": ""
     },
     "openrouter": {
       "calls_today": 0,
       "tokens_today": 0,
-      "day_start": 1779062400.0,
+      "day_start": 1779408000.0,
       "last_call": 0.0,
       "unavailable_until": 0.0,
       "unavailable_reason": ""
@@ -51,7 +51,7 @@
     "github": {
       "calls_today": 0,
       "tokens_today": 0,
-      "day_start": 1779062400.0,
+      "day_start": 1779408000.0,
       "last_call": 0.0,
       "unavailable_until": 0.0,
       "unavailable_reason": ""
@@ -59,17 +59,17 @@
   },
   "router": {
     "cerebras": {
-      "calls_today": 30,
-      "tokens_today": 10853,
-      "day_start": 1779062400.0,
-      "last_call": 1779100494.994433,
+      "calls_today": 44,
+      "tokens_today": 15542,
+      "day_start": 1779408000.0,
+      "last_call": 1779424137.114042,
       "unavailable_until": 0.0,
       "unavailable_reason": ""
     },
     "groq": {
       "calls_today": 0,
       "tokens_today": 0,
-      "day_start": 1779062400.0,
+      "day_start": 1779408000.0,
       "last_call": 0.0,
       "unavailable_until": 0.0,
       "unavailable_reason": ""
@@ -77,7 +77,7 @@
     "nvidia": {
       "calls_today": 0,
       "tokens_today": 0,
-      "day_start": 1779062400.0,
+      "day_start": 1779408000.0,
       "last_call": 0.0,
       "unavailable_until": 0.0,
       "unavailable_reason": ""
@@ -85,7 +85,7 @@
     "github": {
       "calls_today": 0,
       "tokens_today": 0,
-      "day_start": 1779062400.0,
+      "day_start": 1779408000.0,
       "last_call": 0.0,
       "unavailable_until": 0.0,
       "unavailable_reason": ""

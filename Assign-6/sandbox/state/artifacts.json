@@ -1,1 +1,16 @@
-{}
+{
+  "art:0249912003291be3": {
+    "id": "art:0249912003291be3",
+    "content_type": "text/plain; charset=utf-8",
+    "size_bytes": 269425,
+    "source": "fetch_url",
+    "descriptor": "Result of fetch_url(['url'])"
+  },
+  "art:ceb52e881f5ce855": {
+    "id": "art:ceb52e881f5ce855",
+    "content_type": "text/plain; charset=utf-8",
+    "size_bytes": 4852,
+    "source": "web_search",
+    "descriptor": "Result of web_search(['query'])"
+  }
+}
