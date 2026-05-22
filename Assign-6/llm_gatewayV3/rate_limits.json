@@ -10,7 +10,7 @@
     },
     "ollama": {
       "calls_today": 30,
-      "tokens_today": 89935,
+      "tokens_today": 93970,
       "day_start": 1779062400.0,
       "last_call": 1779100495.468739,
       "unavailable_until": 0.0,
