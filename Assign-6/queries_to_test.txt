@@ -15,3 +15,7 @@ python agent.py "When is mom's birthday?"
 
 python agent.py "Search for 'Python asyncio best practices', read the top 3 results,
 and give me a short numbered list of the advice they agree on."
+
+
+python agent.py "Index every .md file under papers/. Confirm how many chunks
+       were indexed in total."

@@ -1,0 +1,17 @@
+you are a senior software enigneer. you are given the code of llm_gatewayV7 and exisitng agent (Assing-7/Agent) code. you need to add some additional functionality to it.
+
+1. the first change is to the gateway. A new endpoint, POST /v1/embed, accepts a piece of text and returns a 768-dimensional vector. The default provider is Ollama with the nomic-embed-text model. A fallback provider is configured via environment variables; the current deployment uses Gemini's gemini-embedding-001 with outputDimensionality=768 so the fallback vector lives in the same space as the default. The endpoint exposes nothing about the agent's prompts to the embedding model; it is a deterministic function from text to vector.
+
+2. The second change is to the MemoryItem schema. One optional field, embedding: list[float] | None, is added. Memory writes for items of kind fact, preference, and tool_outcome compute an embedding at insert time and store it on the item. Scratchpad items skip embedding.
+
+3.The third change is to the Memory service. Reads first run a vector search through FAISS over the items that carry embeddings. When the vector path returns at least one hit, the read returns those items. When the vector path returns nothing, the read falls back to the keyword overlap from Session 6. The vector path dominates in practice once any embeddings exist on disk. The keyword fallback exists for cold-start runs and for partial-availability cases where the gateway's embed endpoint is unreachable.
+
+4.The fourth change is to the MCP server. Two new tools, index_document(path) and search_knowledge(query, k), expose the same machinery to the model. The first tool reads a sandbox file or an artifact, chunks it with a sliding window, embeds each chunk, and writes the chunks into Memory as fact items. The second tool runs the Memory read path explicitly when Decision wants to query the indexed corpus without waiting for the implicit retrieval inside Perception's input.
+
+5. we will be using faiss for the vector search. 
+
+6. memory should fallback to keyword search when vector search didnt result any value.
+
+7. we will be using a chrome extension to feed the data to faiss. create an extension that can be used to feed the data to faiss. 
+
+8. something that cant be ignored: Architectural rules carry over from this session. The grep test on Perception's SYSTEM stays the gate: zero MCP tool names inside. Adding a new MCP tool for a file format your corpus needs is welcome; its docstring is where Decision learns about it.

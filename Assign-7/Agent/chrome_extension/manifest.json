@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Agent Memory Feeder",
+  "version": "1.0",
+  "description": "Feeds webpage text content into the Agent's FAISS-backed memory database.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:8107/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
