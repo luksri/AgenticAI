@@ -69,6 +69,7 @@ formatter:
   prompt: prompts/formatter.md
   temperature: 0.3
   max_tokens: 1500
+  internal_successors: [graph_visualizer]
   description: Renders the final answer for the user. Conventional terminal node — its output.final_answer is what the executor returns.
 
 sandbox_executor:
@@ -89,3 +90,15 @@ browser:
   temperature: 0.3
   max_tokens: 1500
   description: STUB. Reserved for Session 9.
+
+graph_visualizer:
+  prompt: prompts/graph_visualizer.md
+  tools_allowed: []
+  temperature: 0.0
+  max_tokens: 0
+  description: >
+    Renders the live session DAG to a PNG artifact. Bypasses the LLM gateway
+    entirely — the dispatcher in skills.py builds the matplotlib figure from
+    the networkx DiGraph and stores it via artifacts.put(). The returned
+    AgentResult carries the artifact handle so downstream skills or the
+    replay viewer can display it.

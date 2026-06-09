@@ -300,7 +300,8 @@ class Executor:
                                    started_at=time.time()))
         try:
             result, prompt = await run_skill(skill, nid, graph.g.nodes, sid, query, fr,
-                                             memory_hits=memory_hits)
+                                             memory_hits=memory_hits,
+                                             full_graph=graph.g)
         except Exception as e:  # pragma: no cover - dispatcher fault path
             result = AgentResult(success=False, agent_name=skill_name,
                                  error=f"exception: {type(e).__name__}: {e}")

@@ -225,12 +225,153 @@ def tool_payload(tool_names: list[str]) -> list[dict] | None:
     return [_TOOL_CATALOG[n] for n in tool_names if n in _TOOL_CATALOG]
 
 
+# ── graph_visualizer (non-LLM dispatch) ─────────────────────────────────────
+
+def _run_graph_visualizer(full_graph, session_id: str, started: float) -> AgentResult:
+    """Render the live NetworkX DiGraph to a PNG and store it as an artifact.
+
+    Node colours by status:
+      pending  → slate-grey
+      running  → amber
+      complete → green
+      failed   → red
+      skipped  → violet
+
+    The function is synchronous (matplotlib is not async-aware) and is called
+    directly from run_skill before any await.  Layout uses nx.spring_layout
+    with a fixed seed so re-renders of the same graph produce the same image.
+    """
+    import io
+
+    import matplotlib
+    matplotlib.use("Agg")  # non-interactive backend — safe in a server context
+    import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
+
+    STATUS_COLOR = {
+        "pending":  "#94a3b8",  # slate-400
+        "running":  "#fbbf24",  # amber-400
+        "complete": "#22c55e",  # green-500
+        "failed":   "#ef4444",  # red-500
+        "skipped":  "#a78bfa",  # violet-400
+    }
+
+    G = full_graph
+    if G is None or len(G.nodes) == 0:
+        return AgentResult(
+            success=False,
+            agent_name="graph_visualizer",
+            error="no graph available — full_graph was not passed from flow.py",
+            elapsed_s=time.time() - started,
+        )
+
+    # Build display labels: "n:1\nplanner"
+    labels = {
+        nid: f"{nid}\n{G.nodes[nid].get('skill', '?')}"
+        for nid in G.nodes
+    }
+    node_colors = [
+        STATUS_COLOR.get(G.nodes[nid].get("status", "pending"), "#94a3b8")
+        for nid in G.nodes
+    ]
+
+    # Hierarchical layout via topological sort gives a cleaner DAG view than
+    # spring_layout when the graph is a true DAG; fall back to spring if cycles
+    # exist (which shouldn't happen, but guards against the unforeseen).
+    try:
+        import networkx as nx
+        # Compute layer depth for each node via longest-path from sources.
+        topo = list(nx.topological_sort(G))
+        depth: dict[str, int] = {}
+        for n in topo:
+            preds = list(G.predecessors(n))
+            depth[n] = max((depth[p] for p in preds), default=-1) + 1
+
+        # Spread nodes horizontally within each layer.
+        layer_counts: dict[int, int] = {}
+        pos: dict[str, tuple[float, float]] = {}
+        for n in topo:
+            d = depth[n]
+            col = layer_counts.get(d, 0)
+            layer_counts[d] = col + 1
+            pos[n] = (col * 2.0, -d * 2.0)
+    except Exception:
+        pos = nx.spring_layout(G, seed=42)
+
+    fig_width  = max(10, len(G.nodes) * 1.5)
+    fig_height = max(6,  (max(depth.values(), default=0) + 1) * 2.2)
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+
+    nx.draw_networkx(
+        G, pos=pos, ax=ax,
+        labels=labels,
+        node_color=node_colors,
+        node_size=2_200,
+        font_size=7,
+        font_color="white",
+        arrows=True,
+        arrowsize=18,
+        edge_color="#64748b",
+        width=1.5,
+    )
+
+    # Legend
+    legend_patches = [
+        mpatches.Patch(color=c, label=s) for s, c in STATUS_COLOR.items()
+    ]
+    ax.legend(handles=legend_patches, loc="upper right", fontsize=8,
+              framealpha=0.8, title="Node status")
+    ax.set_title(f"DAG — session {session_id}  ({len(G.nodes)} nodes, "
+                 f"{len(G.edges)} edges)", fontsize=10, pad=12)
+    ax.axis("off")
+    fig.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    png_bytes = buf.getvalue()
+
+    art_id = artifacts_svc.put(
+        png_bytes,
+        content_type="image/png",
+        source="graph_visualizer",
+        descriptor=f"DAG visualisation — session {session_id}",
+    )
+
+    # Write a proper .png sidecar next to the .bin so it can be opened
+    # directly in Preview / Finder without renaming the file.
+    digest = art_id.removeprefix("art:")
+    png_path = artifacts_svc.STORE / f"{digest}.png"
+    png_path.write_bytes(png_bytes)
+
+    # Also keep dag_latest.png at state/ root for quick access.
+    latest_path = ROOT / "state" / "dag_latest.png"
+    latest_path.write_bytes(png_bytes)
+
+    print(f"[graph_visualizer] PNG saved → {latest_path}")
+
+    return AgentResult(
+        success=True,
+        agent_name="graph_visualizer",
+        output={
+            "artifact_id": art_id,
+            "node_count":  len(G.nodes),
+            "edge_count":  len(G.edges),
+            "png_path":    str(png_path),
+            "latest_path": str(latest_path),
+        },
+        artifacts=[art_id],
+        elapsed_s=time.time() - started,
+    )
+
+
 # ── per-node execution ───────────────────────────────────────────────────────
 
 async def run_skill(skill: Skill, node_id: str, graph_nodes,
                     session_id: str, query: str,
                     failure_report: str | None,
-                    *, memory_hits: list | None = None) -> tuple[AgentResult, str]:
+                    *, memory_hits: list | None = None,
+                    full_graph=None) -> tuple[AgentResult, str]:
     """Dispatch one node. Returns (result, rendered_prompt).
 
     `memory_hits` is the FAISS-ranked MemoryItem list captured once at
@@ -247,6 +388,10 @@ async def run_skill(skill: Skill, node_id: str, graph_nodes,
     rendered = render_prompt(skill, query, resolved, failure_report,
                              memory_hits=memory_hits)
     started = time.time()
+
+    if skill.name == "graph_visualizer":
+        return _run_graph_visualizer(full_graph, session_id, started), \
+               "(graph_visualizer — no LLM call; rendered from live networkx graph)"
 
     if skill.name == "sandbox_executor":
         code = ""

@@ -51,3 +51,6 @@ Assign-6/session_6_files/
 *.zip   
 
 sandbox/
+state/
+output.json
+artifacts/
