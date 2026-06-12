@@ -1,0 +1,8 @@
+"compare and sort the list by cheapest first for the following grocery items:
+- toordal
+- nandini cow milk
+from the popular grocery and e-commerce platforms including:
+- Blinkit
+- Zepto
+- BigBasket
+set the delivery location to pvr lake view apartments, garudacharpalya, mahadevapura, bangalore, karnataka, india and pin code 560048"
