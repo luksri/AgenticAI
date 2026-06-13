@@ -156,6 +156,7 @@ class DriverResult:
     success: bool
     note: str
     steps: list[StepRecord] = field(default_factory=list)
+    screenshots: list[str] = field(default_factory=list)
 
 
 # ─── action dispatcher (shared) ──────────────────────────────────────────────

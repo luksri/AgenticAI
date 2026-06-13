@@ -306,12 +306,21 @@ async def run_skill(skill: Skill, node_id: str, graph_nodes,
             inputs=node_dict.get("inputs") or [],
             metadata=node_dict.get("metadata") or {},
         )
+        # Derive the actual DAG from the orchestrator graph so ReplayArtifact
+        # records the real skill sequence rather than a hardcoded placeholder.
+        dag = [
+            graph_nodes[n]["skill"]
+            for n in sorted(
+                (n for n in graph_nodes if n.startswith("n:")),
+                key=lambda x: int(x.split(":")[1]),
+            )
+        ]
         from browser.skill import BrowserSkill
         sk = BrowserSkill(
             artifacts_root=str(ROOT / "state" / "sessions" / session_id / "browser"),
             session=session_id,
         )
-        result = await sk.run(node_spec)
+        result = await sk.run(node_spec, planner_dag=dag)
         if not result.elapsed_s:
             result.elapsed_s = time.time() - started
         return result, rendered

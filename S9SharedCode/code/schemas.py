@@ -12,7 +12,7 @@ search. Items of kind `scratchpad` are run-scoped and skip embedding.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -139,6 +139,24 @@ class AgentResult(BaseModel):
     error_code: ErrorCode | None = None
 
 
+class ReplayAction(BaseModel):
+    turn: int
+    action: str
+    target: str | None = None
+    outcome: str | None = None
+
+
+class ReplayArtifact(BaseModel):
+    goal: str
+    browser_path: str
+    actions: list[ReplayAction] = Field(default_factory=list)
+    screenshots: list[str] = Field(default_factory=list)
+    extracted_data: Any | None = None
+    turn_count: int = 0
+    elapsed_seconds: float = 0.0
+    estimated_cost: float | None = None
+    planner_dag: list[str] = Field(default_factory=list)
+
 class BrowserOutput(BaseModel):
     """Session 9: typed payload the Browser skill writes into AgentResult.output.
 
@@ -154,6 +172,11 @@ class BrowserOutput(BaseModel):
     content: str | None = None
     actions: list[dict] = Field(default_factory=list)
     final_url: str | None = None
+
+    # NEW FIELDS
+    replay: ReplayArtifact | None = None
+    comparison_table: list[dict] = Field(default_factory=list)
+    cost_summary: dict = Field(default_factory=dict)
 
 
 class NodeState(BaseModel):

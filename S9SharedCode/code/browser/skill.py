@@ -34,7 +34,7 @@ import httpx
 import trafilatura
 from playwright.async_api import async_playwright
 
-from schemas import AgentResult, BrowserOutput, NodeSpec
+from schemas import AgentResult, BrowserOutput, NodeSpec, ReplayAction, ReplayArtifact
 
 from .client import V9Client
 from .driver import A11yDriver, DriverConfig, DriverResult, SetOfMarksDriver
@@ -144,7 +144,8 @@ class BrowserSkill:
         self.session = session
 
     # ── public entry point ─────────────────────────────────────────────────
-    async def run(self, node: NodeSpec) -> AgentResult:
+    async def run(self, node: NodeSpec, *,
+                  planner_dag: list[str] | None = None) -> AgentResult:
         url = node.metadata.get("url") or (node.inputs[0] if node.inputs else "")
         goal = node.metadata.get("goal") or "extract main content"
         # Optional escape hatch: skip the natural cascade and pin to a specific
@@ -186,7 +187,8 @@ class BrowserSkill:
             if _is_useful_extract(content, goal):
                 return self._pack(url, goal, "extract", turns=0,
                                   content=content, final_url=final_url,
-                                  elapsed=time.time() - t0)
+                                  elapsed=time.time() - t0,
+                                  planner_dag=planner_dag)
 
         # ── Layer 2a: deterministic selectors (only if caller gave any) ────
         # Tightly scoped: this branch only fires when the Planner / caller
@@ -221,7 +223,8 @@ class BrowserSkill:
         if a11y_result.success:
             return self._pack_driver("a11y", url, goal, a11y_result,
                                      final_url=a11y_result.final_url,
-                                     elapsed=time.time() - t0)
+                                     elapsed=time.time() - t0,
+                                     planner_dag=planner_dag)
 
         # ── Layer 3: vision ─────────────────────────────────────────────────
         vis_result = await self._drive(
@@ -235,7 +238,8 @@ class BrowserSkill:
         if vis_result.success:
             return self._pack_driver("vision", url, goal, vis_result,
                                      final_url=vis_result.final_url,
-                                     elapsed=time.time() - t0)
+                                     elapsed=time.time() - t0,
+                                     planner_dag=planner_dag)
 
         last_err = (vis_result.note or a11y_result.note
                     or layer1_http_error or "all layers exhausted")
@@ -303,6 +307,13 @@ class BrowserSkill:
                     {"turn": s.turn, "actions": s.actions, "outcome": s.outcome}
                     for s in drv.steps
                 ]
+                # Collect screenshot paths saved by the driver this layer run.
+                # Vision saves *_marked.png (annotated); a11y saves *_raw.png.
+                if artifacts_dir:
+                    layer_path = Path(artifacts_dir)
+                    marked = sorted(layer_path.glob("turn_*_marked.png"))
+                    result.screenshots = [str(p) for p in marked] or \
+                                         [str(p) for p in sorted(layer_path.glob("turn_*_raw.png"))]
                 return result
             finally:
                 await browser.close()
@@ -317,6 +328,9 @@ class BrowserSkill:
                 viewport={"width": 1366, "height": 900},
             )
             page = await ctx.new_page()
+            actions: list[dict] = []
+            screenshots: list[str] = []
+            i, action_type, sel = 0, "", ""
             try:
                 await page.goto(url, wait_until="domcontentloaded", timeout=45000)
                 for i, step in enumerate(selectors, start=1):
@@ -330,29 +344,119 @@ class BrowserSkill:
                     except Exception:                          # noqa: BLE001
                         await browser.close()
                         return None
-                    if step.get("action") == "fill":
-                        await loc.fill(step.get("value", ""))
-                    elif step.get("action") == "click":
+
+                    action_type = step.get("action")
+                    if action_type == "fill":
+                        value = step.get("value", "")
+                        await loc.fill(value)
+                        actions.append({
+                            "turn": i,
+                            "action": "fill",
+                            "target": sel,
+                            "value": value,
+                            "outcome": "success",
+                        })
+                        if self.artifacts_root:
+                            screenshot_path = (
+                                Path(self.artifacts_root)
+                                / f"deterministic_step_{i}.png"
+                            )
+
+                            await page.screenshot(
+                                path=str(screenshot_path),
+                                full_page=True,
+                            )
+                            screenshots.append(str(screenshot_path))
+
+                    elif action_type == "click":
                         await loc.click()
-                    elif step.get("action") == "key":
-                        await page.keyboard.press(step.get("value", "Enter"))
+                        actions.append({
+                                "turn": i,
+                                "action": "click",
+                                "target": sel,
+                                "outcome": "success",
+                            })
+                        if self.artifacts_root:
+                            screenshot_path = (
+                                Path(self.artifacts_root)
+                                / f"deterministic_step_{i}.png"
+                            )
+
+                            await page.screenshot(
+                                path=str(screenshot_path),
+                                full_page=True,
+                            )
+                            screenshots.append(str(screenshot_path))
+                    elif action_type == "key":
+                        value = step.get("value", "Enter")
+                        await page.keyboard.press(value)
+                        actions.append({
+                            "turn": i,
+                            "action": "key",
+                            "target": value,
+                            "outcome": "success",
+                        })
+                        if self.artifacts_root:
+                            screenshot_path = (
+                                Path(self.artifacts_root)
+                                / f"deterministic_step_{i}.png"
+                            )
+
+                            await page.screenshot(
+                                path=str(screenshot_path),
+                                full_page=True,
+                            )
+                            screenshots.append(str(screenshot_path))
                 content = _extract(await page.content())
                 final = page.url
                 await browser.close()
                 return self._pack(
-                    url, goal, "deterministic", turns=len(selectors),
-                    content=content, final_url=final, elapsed=0.0,
-                )
-            except Exception:                          # noqa: BLE001
+                            url,
+                            goal,
+                            "deterministic",
+                            turns=len(actions),
+                            content=content,
+                            actions=actions,
+                            final_url=final,
+                            elapsed=0.0,
+                            screenshots=screenshots,
+                        )
+            except Exception as e:                          # noqa: BLE001
                 await browser.close()
+                actions.append({
+                    "turn": i,
+                    "action": action_type,
+                    "target": sel,
+                    "outcome": f"failed: {e}",
+                })
                 return None
 
     # ── packers ────────────────────────────────────────────────────────────
     def _pack(self, url, goal, path, *, turns, content=None, actions=None,
-              final_url=None, elapsed=0.0) -> AgentResult:
+              screenshots=None, final_url=None, elapsed=0.0,
+              planner_dag: list[str] | None = None) -> AgentResult:
         out = BrowserOutput(
             url=url, goal=goal, path=path, turns=turns,
             content=content, actions=actions or [], final_url=final_url,
+            cost_summary={"path": path, "turns": turns, "elapsed_s": round(elapsed, 1)},
+            replay=ReplayArtifact(
+                goal=goal,
+                browser_path=path,
+                actions=[
+                    ReplayAction(
+                        turn=a.get("turn", 0),
+                        action=a.get("action", "unknown"),
+                        target=a.get("target"),
+                        outcome=a.get("outcome"),
+                    )
+                    for a in (actions or [])
+                ],
+                screenshots=screenshots or [],
+                extracted_data=content,
+                turn_count=turns,
+                elapsed_seconds=elapsed,
+                planner_dag=planner_dag or ["planner", "browser", "distiller", "critic"],
+            ),
         )
         return AgentResult(
             success=True, agent_name=self.NAME,
@@ -360,13 +464,38 @@ class BrowserSkill:
         )
 
     def _pack_driver(self, path, url, goal, drv_result,
-                     *, final_url, elapsed) -> AgentResult:
+                     *, final_url, elapsed,
+                     planner_dag: list[str] | None = None) -> AgentResult:
+        turns = getattr(drv_result, "turns", 0) or 0
+        driver_actions = getattr(drv_result, "actions", []) or []
+        content = getattr(drv_result, "extracted", None) or None
+        screenshots = getattr(drv_result, "screenshots", []) or []
+
         out = BrowserOutput(
             url=url, goal=goal, path=path,
-            turns=getattr(drv_result, "turns", 0) or 0,
-            content=getattr(drv_result, "extracted", None) or None,
-            actions=getattr(drv_result, "actions", []) or [],
+            turns=turns,
+            content=content,
+            actions=driver_actions,
             final_url=final_url,
+            cost_summary={"path": path, "turns": turns, "elapsed_s": round(elapsed, 1)},
+            replay=ReplayArtifact(
+                goal=goal,
+                browser_path=path,
+                actions=[
+                    ReplayAction(
+                        turn=a.get("turn", idx + 1),
+                        action=str(a.get("actions", [])),
+                        target=None,
+                        outcome=a.get("outcome"),
+                    )
+                    for idx, a in enumerate(driver_actions)
+                ],
+                screenshots=screenshots,
+                extracted_data=content,
+                turn_count=turns,
+                elapsed_seconds=elapsed,
+                planner_dag=planner_dag or ["planner", "browser", "distiller", "critic"],
+            ),
         )
         return AgentResult(
             success=True, agent_name=self.NAME,
