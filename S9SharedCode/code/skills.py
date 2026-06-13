@@ -316,9 +316,12 @@ async def run_skill(skill: Skill, node_id: str, graph_nodes,
             )
         ]
         from browser.skill import BrowserSkill
+        max_steps = int(node_meta.get("max_steps", 20))
         sk = BrowserSkill(
             artifacts_root=str(ROOT / "state" / "sessions" / session_id / "browser"),
             session=session_id,
+            max_steps_a11y=max_steps,
+            max_steps_vision=max_steps,
         )
         result = await sk.run(node_spec, planner_dag=dag)
         if not result.elapsed_s:
