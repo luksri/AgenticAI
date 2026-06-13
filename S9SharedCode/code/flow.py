@@ -340,6 +340,15 @@ class Executor:
                   f"branches because the Critic rejected the re-planned "
                   f"output too.")
         print(f"\n{'═' * 78}\nFINAL: {(formatter_answer or '')[:600]}\n{'═' * 78}\n")
+
+        try:
+            from browser_report import generate as _gen_report
+            report_path = _gen_report(sid)
+            print(f"[report] {report_path}")
+            print(f"[report] open '{report_path}'")
+        except Exception as _rpt_err:
+            print(f"[report] skipped: {_rpt_err}")
+
         return formatter_answer or ""
 
     async def _run_one(self, nid: str, graph: Graph, sid: str, query: str,
