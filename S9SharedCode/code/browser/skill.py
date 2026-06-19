@@ -164,6 +164,8 @@ class BrowserSkill:
             if self.artifacts_root else None
         )
 
+        layer_trace: list[dict] = []
+
         # ── Layer 1: extract ────────────────────────────────────────────────
         # When the bare GET fails (403/405 from a WAF, connection refused, …)
         # we do NOT bail out: anti-bot edges often serve a CAPTCHA *page* to
@@ -180,15 +182,31 @@ class BrowserSkill:
         if html:
             block = detect_gateway_block(html)
             if block:
+                layer_trace.append({"layer": "1_extract", "status": "blocked",
+                                    "reason": f"gateway block: {block}"})
                 return self._pack_error(url, goal, "gateway_blocked",
                                         f"gateway_blocked: {block} marker on {final_url}",
                                         elapsed=time.time() - t0)
             content = _extract(html)
             if _is_useful_extract(content, goal):
+                layer_trace.append({"layer": "1_extract", "status": "used",
+                                    "reason": f"extract sufficient ({len(content)} chars)"})
                 return self._pack(url, goal, "extract", turns=0,
                                   content=content, final_url=final_url,
                                   elapsed=time.time() - t0,
-                                  planner_dag=planner_dag)
+                                  planner_dag=planner_dag,
+                                  layer_trace=layer_trace)
+            else:
+                interactive_verbs = ("click", "fill", "select", "type", "drag",
+                                     "filter", "sort", "submit", "navigate")
+                verb = next((v for v in interactive_verbs if v in goal.lower()), None)
+                skip_reason = (f"goal has interactive verb: '{verb}'"
+                               if verb else f"extract too short ({len(content)} chars)")
+                layer_trace.append({"layer": "1_extract", "status": "skipped",
+                                    "reason": skip_reason})
+        else:
+            layer_trace.append({"layer": "1_extract", "status": "skipped",
+                                "reason": layer1_http_error or "empty response"})
 
         # ── Layer 2a: deterministic selectors (only if caller gave any) ────
         # Tightly scoped: this branch only fires when the Planner / caller
@@ -201,21 +219,39 @@ class BrowserSkill:
         if selectors:
             det = await self._try_deterministic(url, goal, selectors)
             if det is not None:
+                layer_trace.append({"layer": "2a_deterministic", "status": "used",
+                                    "reason": f"{len(selectors)} selector(s) executed"})
                 return det if det.success else self._pack_error(
                     url, goal, "interaction_failed",
                     det.error or "deterministic path failed",
                     elapsed=time.time() - t0,
                 )
+            layer_trace.append({"layer": "2a_deterministic", "status": "tried",
+                                "reason": "selector(s) failed, falling through to a11y"})
+        else:
+            layer_trace.append({"layer": "2a_deterministic", "status": "skipped",
+                                "reason": "no selectors in metadata"})
 
         # ── Layer 2b: a11y ──────────────────────────────────────────────────
         if force_path == "vision":
             # Skip a11y entirely — caller wants Layer 3 explicitly.
+            layer_trace.append({"layer": "2b_a11y", "status": "skipped",
+                                "reason": "force_path=vision"})
             a11y_result = DriverResult(success=False, note="skipped by force_path=vision")
         else:
             a11y_result = await self._drive(
                 A11yDriver, url, goal, client, artifacts_dir,
                 self.a11y_provider_pin, self.max_steps_a11y,
             )
+            turns_a11y = len(getattr(a11y_result, "steps", []))
+            if a11y_result.success:
+                layer_trace.append({"layer": "2b_a11y", "status": "used",
+                                    "turns": turns_a11y, "reason": "success"})
+            else:
+                layer_trace.append({"layer": "2b_a11y", "status": "tried",
+                                    "turns": turns_a11y,
+                                    "reason": a11y_result.note or "failed"})
+
         if getattr(a11y_result, "gateway_blocked", False):
             return self._pack_error(url, goal, "gateway_blocked",
                                     a11y_result.note or "gateway_blocked after JS render",
@@ -224,23 +260,33 @@ class BrowserSkill:
             return self._pack_driver("a11y", url, goal, a11y_result,
                                      final_url=a11y_result.final_url,
                                      elapsed=time.time() - t0,
-                                     planner_dag=planner_dag)
+                                     planner_dag=planner_dag,
+                                     layer_trace=layer_trace)
 
         # ── Layer 3: vision ─────────────────────────────────────────────────
         vis_result = await self._drive(
             SetOfMarksDriver, url, goal, client, artifacts_dir,
             self.vision_provider_pin, self.max_steps_vision,
         )
+        turns_vis = len(getattr(vis_result, "steps", []))
         if getattr(vis_result, "gateway_blocked", False):
+            layer_trace.append({"layer": "3_vision", "status": "blocked",
+                                "turns": turns_vis, "reason": vis_result.note or "gateway blocked"})
             return self._pack_error(url, goal, "gateway_blocked",
                                     vis_result.note or "gateway_blocked after JS render",
                                     elapsed=time.time() - t0)
         if vis_result.success:
+            layer_trace.append({"layer": "3_vision", "status": "used",
+                                "turns": turns_vis, "reason": "success"})
             return self._pack_driver("vision", url, goal, vis_result,
                                      final_url=vis_result.final_url,
                                      elapsed=time.time() - t0,
-                                     planner_dag=planner_dag)
+                                     planner_dag=planner_dag,
+                                     layer_trace=layer_trace)
 
+        layer_trace.append({"layer": "3_vision", "status": "tried",
+                            "turns": turns_vis,
+                            "reason": vis_result.note or "failed"})
         last_err = (vis_result.note or a11y_result.note
                     or layer1_http_error or "all layers exhausted")
         return self._pack_error(url, goal, "interaction_failed",
@@ -434,7 +480,8 @@ class BrowserSkill:
     # ── packers ────────────────────────────────────────────────────────────
     def _pack(self, url, goal, path, *, turns, content=None, actions=None,
               screenshots=None, final_url=None, elapsed=0.0,
-              planner_dag: list[str] | None = None) -> AgentResult:
+              planner_dag: list[str] | None = None,
+              layer_trace: list[dict] | None = None) -> AgentResult:
         out = BrowserOutput(
             url=url, goal=goal, path=path, turns=turns,
             content=content, actions=actions or [], final_url=final_url,
@@ -456,6 +503,7 @@ class BrowserSkill:
                 turn_count=turns,
                 elapsed_seconds=elapsed,
                 planner_dag=planner_dag or ["planner", "browser", "distiller", "critic"],
+                layer_trace=layer_trace or [],
             ),
         )
         return AgentResult(
@@ -465,7 +513,8 @@ class BrowserSkill:
 
     def _pack_driver(self, path, url, goal, drv_result,
                      *, final_url, elapsed,
-                     planner_dag: list[str] | None = None) -> AgentResult:
+                     planner_dag: list[str] | None = None,
+                     layer_trace: list[dict] | None = None) -> AgentResult:
         turns = getattr(drv_result, "turns", 0) or 0
         driver_actions = getattr(drv_result, "actions", []) or []
         content = getattr(drv_result, "extracted", None) or None
@@ -495,6 +544,7 @@ class BrowserSkill:
                 turn_count=turns,
                 elapsed_seconds=elapsed,
                 planner_dag=planner_dag or ["planner", "browser", "distiller", "critic"],
+                layer_trace=layer_trace or [],
             ),
         )
         return AgentResult(

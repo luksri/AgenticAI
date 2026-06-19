@@ -32,6 +32,11 @@ Available skills:
                      point of having Browser in the first place;
                      a pre-filtered URL would skip the interactive
                      path the cascade is built for.
+                     OPTIONAL: if the user supplies an explicit CSS
+                     selector, set metadata.selectors = list of
+                     {"action":"fill"|"click"|"key","selector":"<css>",
+                     "value":"<text>"} — Layer 2a will try these
+                     before falling back to a11y.
                      Do NOT set metadata.force_path. Let the
                      cascade choose its own layer; the skill knows
                      how to escalate from extract → a11y → vision

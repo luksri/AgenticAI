@@ -70,6 +70,7 @@ def _node_to_dict(st: NodeState) -> dict:
         "screenshots": shots_b64,
         "replay":     {
             "planner_dag": replay.get("planner_dag") or [],
+            "layer_trace": replay.get("layer_trace") or [],
             "actions":     (out or {}).get("actions") or [],
             "path":        (out or {}).get("path", ""),
             "turns":       (out or {}).get("turns", 0),
@@ -397,6 +398,32 @@ function renderBrowser(node){
     html+=`<div class="section">
       <div class="section-label">① Planner DAG</div>
       <div class="section-body"><div class="dag">${chips}</div></div>
+    </div>`;
+  }
+
+  // layer trace
+  const trace=rp.layer_trace||[];
+  if(trace.length){
+    const LAYER_COLOR={"used":"#22c55e","skipped":"#475569","tried":"#f59e0b","blocked":"#ef4444"};
+    const rows=trace.map(t=>{
+      const st=(t.status||"").toLowerCase();
+      const col=LAYER_COLOR[st]||"#64748b";
+      const turns=t.turns!=null?`<td style="color:#64748b;text-align:right">${t.turns} turns</td>`:`<td></td>`;
+      return `<tr>
+        <td style="font-family:monospace;font-size:11px;color:#94a3b8;white-space:nowrap">${esc(t.layer||"")}</td>
+        <td><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700;background:${col}22;color:${col};border:1px solid ${col}44">${esc(t.status||"")}</span></td>
+        ${turns}
+        <td style="font-size:11px;color:#64748b">${esc(t.reason||"")}</td>
+      </tr>`;
+    }).join("");
+    html+=`<div class="section">
+      <div class="section-label">② Layer Cascade</div>
+      <div class="section-body" style="padding:0;overflow:hidden;border-radius:10px">
+        <table class="acts">
+          <thead><tr><th>Layer</th><th>Status</th><th>Turns</th><th>Reason</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>`;
   }
 

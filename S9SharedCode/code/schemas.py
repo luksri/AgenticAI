@@ -156,6 +156,7 @@ class ReplayArtifact(BaseModel):
     elapsed_seconds: float = 0.0
     estimated_cost: float | None = None
     planner_dag: list[str] = Field(default_factory=list)
+    layer_trace: list[dict] = Field(default_factory=list)
 
 class BrowserOutput(BaseModel):
     """Session 9: typed payload the Browser skill writes into AgentResult.output.

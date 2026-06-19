@@ -960,6 +960,46 @@ def model_capabilities(provider_name: str, model: str, default_caps: dict) -> di
     return caps
 
 
+class GeminiLoadBalancedProvider(BaseProvider):
+    """Round-robin across multiple Gemini API keys.
+
+    Each call goes to the next key in sequence. On a 429 from one key the
+    provider transparently retries with the next key before propagating the
+    error — so a single saturated key doesn't stall the whole ring.
+    """
+    name = "gemini"
+    capabilities = GeminiProvider.capabilities
+
+    def __init__(self, keys: list[str], model: str, cache_store):
+        super().__init__(keys[0], model,
+                         "https://generativelanguage.googleapis.com/v1beta")
+        self._instances = [GeminiProvider(k, model, cache_store) for k in keys]
+        self._counter = 0
+
+    def _next_idx(self) -> int:
+        idx = self._counter % len(self._instances)
+        self._counter += 1
+        return idx
+
+    async def chat(self, messages, **kwargs):
+        start = self._counter
+        for attempt in range(len(self._instances)):
+            idx = (start + attempt) % len(self._instances)
+            try:
+                result = await self._instances[idx].chat(messages, **kwargs)
+                self._counter = idx + 1
+                return result
+            except ProviderError as e:
+                if e.status == 429 and attempt < len(self._instances) - 1:
+                    continue
+                raise
+
+    async def stream(self, messages, **kwargs):
+        idx = self._next_idx()
+        async for chunk in self._instances[idx].stream(messages, **kwargs):
+            yield chunk
+
+
 def build_providers(cache_store):
     """Worker pool — the LLMs that do real work for the agent.
 
@@ -968,8 +1008,18 @@ def build_providers(cache_store):
     - groq worker default: openai/gpt-oss-120b (was llama-3.3-70b-versatile, now moved to router pool)
     """
     out = {}
-    if k := os.getenv("GEMINI_API_KEY"):
-        out["gemini"] = GeminiProvider(k, os.getenv("GEMINI_MODEL", "gemini-2.5-flash"), cache_store)
+    gemini_keys = [k for k in [
+        os.getenv("GEMINI_API_KEY"),
+        os.getenv("GEMINI_API_KEY2"),
+        os.getenv("GEMINI_API_KEY3"),
+    ] if k]
+    if gemini_keys:
+        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        out["gemini"] = (
+            GeminiLoadBalancedProvider(gemini_keys, model, cache_store)
+            if len(gemini_keys) > 1
+            else GeminiProvider(gemini_keys[0], model, cache_store)
+        )
     if k := os.getenv("NVIDIA_API_KEY"):
         out["nvidia"] = NvidiaProvider(k, os.getenv("NVIDIA_MODEL", "deepseek-ai/deepseek-v3.2"))
     if k := os.getenv("GROQ_API_KEY"):

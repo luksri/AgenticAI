@@ -10,3 +10,9 @@ set the delivery location to pvr lake view apartments, garudacharpalya, mahadeva
 
 "fill the form with random details in
 https://practice-automation.com/form-fields/?utm_source=chatgpt.com"
+
+
+"Compare 3 laptops under ₹80,000 that has top rating in flipkart"
+"Compare 5 AI coding tools by free plan and paid plan."
+"Compare top 3 Hugging Face text-generation models sorted by likes."
+"Compare 5 CNC/VMC training institutes in Bangalore."
