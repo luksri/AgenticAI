@@ -333,10 +333,42 @@ async def run_skill(skill: Skill, node_id: str, graph_nodes,
         # four-layer cascade (deterministic → a11y → vision) via cua-driver
         # and never touches the gateway text-LLM dispatch directly.
         node_dict = graph_nodes[node_id]
+        meta = dict(node_dict.get("metadata") or {})
+
+        # The Planner often writes `n:<label>` inside metadata.goal
+        # (e.g. "paste the following: n:summary").  After flow.py resolves
+        # labels to numeric ids the inputs list has `n:3`, but the goal
+        # string still holds the original label form.  Substitute BOTH the
+        # numeric id form and the label form with the upstream node's actual
+        # content so the computer skill receives a concrete goal.
+        goal = meta.get("goal", "")
+        for inp_id in node_dict.get("inputs", []):
+            if not inp_id.startswith("n:"):
+                continue
+            upstream = graph_nodes.get(inp_id, {})
+            upstream_result = upstream.get("result")
+            if not isinstance(upstream_result, AgentResult):
+                continue
+            out = upstream_result.output or {}
+            content = str(
+                out.get("summary") or out.get("findings") or
+                out.get("content") or out.get("final_answer") or out
+            )[:4000]
+            goal_before = goal
+            goal = goal.replace(inp_id, content)
+            # Also replace the original label form (n:summary → n:3 was renamed)
+            label = (upstream.get("metadata") or {}).get("label", "")
+            if label:
+                goal = goal.replace(f"n:{label}", content)
+            # Planner didn't embed a placeholder → append content after the goal
+            if goal == goal_before:
+                goal = goal.rstrip() + "\n\n" + content
+        meta["goal"] = goal
+
         node_spec = NodeSpec(
             skill="computer",
             inputs=node_dict.get("inputs") or [],
-            metadata=node_dict.get("metadata") or {},
+            metadata=meta,
         )
         from computer.skill import ComputerSkill
         max_steps = int(node_meta.get("max_steps", 10))

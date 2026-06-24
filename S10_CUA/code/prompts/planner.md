@@ -50,12 +50,21 @@ Available skills:
                        - editing in VS Code / Cursor / any Electron app
                        - any workflow that needs a real desktop window
                      metadata MUST set:
-                       bundle_id  preferred app identifier, e.g.
-                                  "com.apple.calculator" (use this
-                                  when you know it — it is unambiguous)
-                       app        display name fallback, e.g.
-                                  "Calculator" (used only when
-                                  bundle_id is absent)
+                       bundle_id  preferred app identifier — use the
+                                  EXACT id from this table:
+                                    Calculator  com.apple.calculator
+                                    Notes       com.apple.Notes
+                                    Numbers     com.apple.iWork.Numbers
+                                    Pages       com.apple.iWork.Pages
+                                    Keynote     com.apple.iWork.Keynote
+                                    TextEdit    com.apple.TextEdit
+                                    Finder      com.apple.finder
+                                    VS Code     com.microsoft.VSCode
+                                    Cursor      com.todesktop.230313mzl4w4u92
+                                  If the app is not in this list, omit
+                                  bundle_id and set app (display name).
+                       app        display name fallback (used when
+                                  bundle_id is absent or unknown)
                        goal       free-text task, e.g.
                                   "compute 42 + 18"
                      Do NOT set metadata.force_path. The cascade
