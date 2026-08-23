@@ -1,0 +1,43 @@
+{
+  "run_context": {
+    "correlation_id": "abc123",
+    "pipeline_id": "456789",
+    "project_id": "12345",
+    "commit_sha": "a1b2c3..."
+  },
+  "source": {
+    "mode": "workspace",
+    "path": "/tmp/remediation-demo",
+    "scope": "full"
+  },
+  "settings": {
+    "severity": ["HIGH", "CRITICAL"],
+    "scope": {
+      "allow": [],
+      "deny": []
+    },
+    "gates": {
+      "build": "",
+      "test": ""
+    }
+  },
+  "findings": [
+    {
+      "id": "CVE-2024-12345",
+      "severity": "HIGH",
+      "category": "SCA",
+      "file": "sample.csproj",
+      "component": "Newtonsoft.Json",
+      "fixed_version": "13.0.3",
+      "enrichment": {
+        "nvd": {},
+        "epss": 0.85,
+        "kev": true
+      },
+      "risk": {
+        "score": 95.5,
+        "tier": "CRITICAL"
+      }
+    }
+  ]
+}
