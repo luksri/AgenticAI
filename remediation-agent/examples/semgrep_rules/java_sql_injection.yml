@@ -1,0 +1,12 @@
+rules:
+  - id: java-jdbc-sql-injection
+    languages: [java]
+    severity: ERROR
+    message: >-
+      SQL injection: a query string is built by concatenating untrusted
+      input directly into the query text. Use a PreparedStatement with bound
+      parameters instead.
+    metadata:
+      cwe: ["CWE-89: SQL Injection"]
+    patterns:
+      - pattern: $VAR = $PREFIX + $INPUT + $SUFFIX

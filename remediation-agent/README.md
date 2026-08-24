@@ -205,28 +205,51 @@ gateway service.
 
 ## Running it
 
-`examples/sample_payload.json` points at `source.path: /tmp/remediation-demo`,
-which doesn't exist until you create it. **Do not point `source.path` at
-`tests/fixtures/` directly** -- those directories have no `.git` of their
-own, so `decide`'s `git branch`/`git commit` would resolve upward to *this
-project's own outer git repo* and create a real branch/commit there instead
-of in a sandbox. Build an isolated, throwaway checkout first:
+Every example payload points `source.path` at a `/tmp/remediation-demo*`
+directory that doesn't exist until you create it. **Do not point
+`source.path` at `tests/fixtures/` directly** -- those directories have no
+`.git` of their own, so `decide`'s `git branch`/`git commit` would resolve
+upward to *this project's own outer git repo* and create a real branch/commit
+there instead of in a sandbox. Build every isolated, throwaway checkout in
+one go:
 
 ```bash
-# an isolated git repo the agent is actually meant to mutate
-rm -rf /tmp/remediation-demo
-cp -r tests/fixtures/dotnet_sample /tmp/remediation-demo
-git -C /tmp/remediation-demo init -q
-git -C /tmp/remediation-demo add -A
-git -C /tmp/remediation-demo commit -q -m "demo baseline"
+examples/setup_demos.sh
+```
 
-# one-shot: run the graph once against a single payload file, no persistence
-remediation-agent run-once examples/sample_payload.json
+Then try each capability the agent has, end to end:
+
+```bash
+# SCA: deterministic version bump, no LLM call, two ecosystems
+remediation-agent run-once examples/sample_payload.json         # .NET / NuGet -- Newtonsoft.Json
+remediation-agent run-once examples/sca_java_log4j.json         # Java / Maven -- log4j-core (Log4Shell)
+
+# SAST: curated rule-id template, still no LLM call
+remediation-agent run-once examples/sast_template_tier.json     # exact rule id the template claims
+
+# SAST: LLM-authored fix, curated CWE-502 guidance available
+remediation-agent run-once examples/sast_llm_tier_guided.json   # same vulnerability, a rule id with no template
+
+# SAST: LLM-authored fix, NO curated guidance -- the real capability test
+remediation-agent run-once examples/sast_llm_tier_raw.json      # Java SQL injection, a class this agent has no cheat sheet for
+
+# both categories in one run, exercising the parallel Send fan-out
+remediation-agent run-once examples/multi_finding.json
 
 # long-running: bounded-concurrency worker pool watching a directory for
 # *.json payload files, writing results to <dir>/results/
 remediation-agent worker --dir ./jobs --concurrency 5
 ```
+
+The three SAST examples set `settings.sast.semgrep_config` to a real local
+rule file under `examples/semgrep_rules/` (validated against both the
+vulnerable and the fixed code before being shipped here) rather than the
+default public-registry lookup, so the re-verification gate is a genuine
+check, not the "zero rules loaded" no-op described above. The two
+`sast_llm_tier_*` examples (and the SAST half of `multi_finding`) also need
+a real `ANTHROPIC_API_KEY` (or whichever `REMEDIATION_LLM_PROVIDER` you've
+configured) to actually generate a patch -- without one they still run to a
+clean `fix_failed` with the auth error as the message, never a crash.
 
 Both subcommands call `apply_command_allowlist()` first, which unions
 session-17's default command allowlist with every registered ecosystem

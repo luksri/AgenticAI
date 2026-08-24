@@ -1,0 +1,43 @@
+{
+  "run_context": {
+    "correlation_id": "demo-2",
+    "pipeline_id": "456790",
+    "project_id": "demo-sca-java",
+    "commit_sha": "b2c3d4..."
+  },
+  "source": {
+    "mode": "workspace",
+    "path": "/tmp/remediation-demo-sca-java",
+    "scope": "full"
+  },
+  "settings": {
+    "severity": ["HIGH", "CRITICAL"],
+    "scope": {
+      "allow": [],
+      "deny": []
+    },
+    "gates": {
+      "build": "",
+      "test": ""
+    }
+  },
+  "findings": [
+    {
+      "id": "CVE-2021-44228",
+      "severity": "CRITICAL",
+      "category": "SCA",
+      "file": "pom.xml",
+      "component": "log4j-core",
+      "fixed_version": "2.17.1",
+      "enrichment": {
+        "nvd": {},
+        "epss": 0.97,
+        "kev": true
+      },
+      "risk": {
+        "score": 99.0,
+        "tier": "CRITICAL"
+      }
+    }
+  ]
+}

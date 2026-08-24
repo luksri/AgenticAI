@@ -1,0 +1,47 @@
+{
+  "run_context": {
+    "correlation_id": "demo-3",
+    "pipeline_id": "456791",
+    "project_id": "demo-sast-template",
+    "commit_sha": "c3d4e5..."
+  },
+  "source": {
+    "mode": "workspace",
+    "path": "/tmp/remediation-demo-sast-template",
+    "scope": "full"
+  },
+  "settings": {
+    "severity": ["HIGH", "CRITICAL"],
+    "scope": {
+      "allow": [],
+      "deny": []
+    },
+    "gates": {
+      "build": "",
+      "test": ""
+    },
+    "sast": {
+      "semgrep_config": "/Volumes/lucky-dev/TSAI/AgenticAI/remediation-agent/examples/semgrep_rules/csharp_insecure_deserialization.yml"
+    }
+  },
+  "findings": [
+    {
+      "id": "csharp.lang.security.insecure-deserialization.insecure-deserialization",
+      "tool": "semgrep",
+      "category": "SAST",
+      "lane": "code",
+      "file": "src/Controllers/ProductController.cs",
+      "severity": "HIGH",
+      "title": "Insecure deserialization detected",
+      "line": 9,
+      "snippet": "var model = JsonConvert.DeserializeObject<ProductModel>(data);",
+      "cwe_ids": ["CWE-502"],
+      "enrichment": {},
+      "risk": {
+        "score": 85.0,
+        "tier": "Critical"
+      },
+      "correlated": true
+    }
+  ]
+}

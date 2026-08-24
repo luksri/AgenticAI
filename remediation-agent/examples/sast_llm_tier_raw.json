@@ -1,0 +1,47 @@
+{
+  "run_context": {
+    "correlation_id": "demo-5",
+    "pipeline_id": "456793",
+    "project_id": "demo-sast-llm-raw",
+    "commit_sha": "e5f6a7..."
+  },
+  "source": {
+    "mode": "workspace",
+    "path": "/tmp/remediation-demo-sast-llm-raw",
+    "scope": "full"
+  },
+  "settings": {
+    "severity": ["HIGH", "CRITICAL"],
+    "scope": {
+      "allow": [],
+      "deny": []
+    },
+    "gates": {
+      "build": "",
+      "test": ""
+    },
+    "sast": {
+      "semgrep_config": "/Volumes/lucky-dev/TSAI/AgenticAI/remediation-agent/examples/semgrep_rules/java_sql_injection.yml"
+    }
+  },
+  "findings": [
+    {
+      "id": "java.lang.security.audit.sql-injection.jdbc-string-concatenation",
+      "tool": "semgrep",
+      "category": "SAST",
+      "lane": "code",
+      "file": "src/main/java/com/example/dao/UserDao.java",
+      "severity": "CRITICAL",
+      "title": "SQL injection via string-concatenated JDBC query",
+      "line": 17,
+      "snippet": "String query = \"SELECT * FROM users WHERE username = '\" + username + \"'\";",
+      "cwe_ids": ["CWE-89"],
+      "enrichment": {},
+      "risk": {
+        "score": 92.0,
+        "tier": "Critical"
+      },
+      "correlated": true
+    }
+  ]
+}

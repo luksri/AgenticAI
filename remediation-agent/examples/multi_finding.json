@@ -1,0 +1,64 @@
+{
+  "run_context": {
+    "correlation_id": "demo-6",
+    "pipeline_id": "456794",
+    "project_id": "demo-multi",
+    "commit_sha": "f6a7b8..."
+  },
+  "source": {
+    "mode": "workspace",
+    "path": "/tmp/remediation-demo-multi",
+    "scope": "full"
+  },
+  "settings": {
+    "severity": ["HIGH", "CRITICAL"],
+    "scope": {
+      "allow": [],
+      "deny": []
+    },
+    "gates": {
+      "build": "",
+      "test": ""
+    },
+    "sast": {
+      "semgrep_config": "/Volumes/lucky-dev/TSAI/AgenticAI/remediation-agent/examples/semgrep_rules/csharp_insecure_deserialization.yml"
+    }
+  },
+  "findings": [
+    {
+      "id": "CVE-2024-12345",
+      "severity": "HIGH",
+      "category": "SCA",
+      "file": "sample.csproj",
+      "component": "Newtonsoft.Json",
+      "fixed_version": "13.0.3",
+      "enrichment": {
+        "nvd": {},
+        "epss": 0.85,
+        "kev": true
+      },
+      "risk": {
+        "score": 95.5,
+        "tier": "CRITICAL"
+      }
+    },
+    {
+      "id": "csharp.lang.security.insecure-deserialization.insecure-deserialization",
+      "tool": "semgrep",
+      "category": "SAST",
+      "lane": "code",
+      "file": "src/Controllers/ProductController.cs",
+      "severity": "HIGH",
+      "title": "Insecure deserialization detected",
+      "line": 9,
+      "snippet": "var model = JsonConvert.DeserializeObject<ProductModel>(data);",
+      "cwe_ids": ["CWE-502"],
+      "enrichment": {},
+      "risk": {
+        "score": 85.0,
+        "tier": "Critical"
+      },
+      "correlated": true
+    }
+  ]
+}

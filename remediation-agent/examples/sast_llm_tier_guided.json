@@ -1,0 +1,47 @@
+{
+  "run_context": {
+    "correlation_id": "demo-4",
+    "pipeline_id": "456792",
+    "project_id": "demo-sast-llm-guided",
+    "commit_sha": "d4e5f6..."
+  },
+  "source": {
+    "mode": "workspace",
+    "path": "/tmp/remediation-demo-sast-llm-guided",
+    "scope": "full"
+  },
+  "settings": {
+    "severity": ["HIGH", "CRITICAL"],
+    "scope": {
+      "allow": [],
+      "deny": []
+    },
+    "gates": {
+      "build": "",
+      "test": ""
+    },
+    "sast": {
+      "semgrep_config": "/Volumes/lucky-dev/TSAI/AgenticAI/remediation-agent/examples/semgrep_rules/csharp_insecure_deserialization.yml"
+    }
+  },
+  "findings": [
+    {
+      "id": "csharp.lang.security.audit.newtonsoft-unsafe-typenamehandling.newtonsoft-unsafe-typenamehandling",
+      "tool": "semgrep",
+      "category": "SAST",
+      "lane": "code",
+      "file": "src/Controllers/ProductController.cs",
+      "severity": "HIGH",
+      "title": "Unsafe Newtonsoft.Json deserialization (no explicit TypeNameHandling)",
+      "line": 9,
+      "snippet": "var model = JsonConvert.DeserializeObject<ProductModel>(data);",
+      "cwe_ids": ["CWE-502"],
+      "enrichment": {},
+      "risk": {
+        "score": 82.0,
+        "tier": "High"
+      },
+      "correlated": false
+    }
+  ]
+}

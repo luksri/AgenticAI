@@ -9,7 +9,19 @@ import json
 import logging
 import sys
 
-from remediation_agent.config import apply_command_allowlist, get_settings
+from dotenv import load_dotenv
+
+# Loaded before anything reads os.environ (get_settings(), _build_providers()
+# in llm/glc_gateway.py, etc.) -- `python-dotenv` was already a declared
+# dependency but nothing actually called this; provider API keys in a local
+# .env were silently inert until now. Only sets variables not already
+# present in the real environment (load_dotenv's default), so an operator's
+# actual exported secrets always win over a checked-in-adjacent .env file.
+# Must run before the imports below: registering allowed commands and
+# resolving settings both read os.environ at import/call time.
+load_dotenv()
+
+from remediation_agent.config import apply_command_allowlist, get_settings  # noqa: E402
 
 # Importing these (before apply_command_allowlist() runs) is what makes
 # adapters and SAST support register their commands into the allowlist
@@ -17,8 +29,8 @@ from remediation_agent.config import apply_command_allowlist, get_settings
 # (imported lazily inside _run_once/_worker, after apply_command_allowlist()
 # already ran) is too late for this: registration has to happen before the
 # allowlist snapshot is taken, not merely before any command actually runs.
-import remediation_agent.ecosystems.registry  # noqa: F401  (import for side effect)
-import remediation_agent.sast  # noqa: F401  (import for side effect: registers "semgrep")
+import remediation_agent.ecosystems.registry  # noqa: E402,F401  (import for side effect)
+import remediation_agent.sast  # noqa: E402,F401  (import for side effect: registers "semgrep")
 
 
 def _run_once(args: argparse.Namespace) -> None:
@@ -65,6 +77,14 @@ def _worker(args: argparse.Namespace) -> None:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+    # httpx (and httpcore under it) log the full request URL at INFO level.
+    # Gemini's REST API puts the API key directly in the URL as a `?key=...`
+    # query parameter -- there is no header-based alternative -- so leaving
+    # httpx at INFO prints a live secret into stderr on every Gemini call via
+    # llm/glc_gateway.py. This is not hypothetical: it happened during this
+    # project's own testing. WARNING still surfaces real httpx errors.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     parser = argparse.ArgumentParser(prog="remediation-agent")
     subparsers = parser.add_subparsers(dest="command", required=True)

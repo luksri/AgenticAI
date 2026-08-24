@@ -60,9 +60,15 @@ class Settings:
         default_factory=lambda: os.getenv("REMEDIATION_DEDUP_DB", ".remediation/jobs.sqlite")
     )
 
-    # LLM (only consulted by the SCA-ambiguous fallback and the optional
-    # adversarial validator -- the default SCA path makes no LLM call)
-    llm_provider: str = field(default_factory=lambda: os.getenv("REMEDIATION_LLM_PROVIDER", "anthropic"))
+    # LLM (only consulted by the SAST LLM-fallback tier, the SCA-ambiguous
+    # fallback, and the optional adversarial validator -- the default SCA
+    # path makes no LLM call). "glc" reuses session-17's own multi-provider
+    # fallback chain (glc_v5's glc.providers, LLM_ORDER, ollama first) --
+    # see llm/glc_gateway.py. `llm_model` is only read by the "anthropic"
+    # branch; "glc"'s per-provider models come from each provider's own
+    # *_MODEL env var (GROQ_MODEL, OLLAMA_MODEL, etc.), already set wherever
+    # session-17's own gateway is configured.
+    llm_provider: str = field(default_factory=lambda: os.getenv("REMEDIATION_LLM_PROVIDER", "glc"))
     llm_model: str = field(default_factory=lambda: os.getenv("REMEDIATION_LLM_MODEL", "claude-sonnet-5"))
     enable_sca_llm_fallback: bool = field(
         default_factory=lambda: os.getenv("REMEDIATION_SCA_LLM_FALLBACK", "false").lower() == "true"

@@ -1,0 +1,12 @@
+<project>
+  <groupId>com.example</groupId>
+  <artifactId>sample-dao-app</artifactId>
+  <version>1.0.0</version>
+  <dependencies>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>42.7.3</version>
+    </dependency>
+  </dependencies>
+</project>

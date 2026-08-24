@@ -24,6 +24,16 @@ def get_chat_model() -> BaseChatModel:
     settings = get_settings()
     provider = settings.llm_provider.strip().lower()
 
+    if provider == "glc":
+        try:
+            from remediation_agent.llm.glc_gateway import GLCGatewayChatModel
+        except ImportError as exc:
+            raise RuntimeError(
+                "REMEDIATION_LLM_PROVIDER=glc requires the 'glc-v5' package "
+                "(the path dependency on ../session-17/glc_v5 in pyproject.toml)."
+            ) from exc
+        return GLCGatewayChatModel()
+
     if provider == "anthropic":
         try:
             from langchain_anthropic import ChatAnthropic
@@ -36,5 +46,5 @@ def get_chat_model() -> BaseChatModel:
         return ChatAnthropic(model=settings.llm_model)
 
     raise RuntimeError(
-        f"unsupported REMEDIATION_LLM_PROVIDER={provider!r}. Supported providers: 'anthropic'."
+        f"unsupported REMEDIATION_LLM_PROVIDER={provider!r}. Supported providers: 'glc', 'anthropic'."
     )

@@ -1,0 +1,12 @@
+rules:
+  - id: csharp-insecure-deserialization
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      Insecure deserialization: JsonConvert.DeserializeObject called without
+      an explicit JsonSerializerSettings pinning TypeNameHandling to None.
+      Untrusted input can steer which type gets instantiated.
+    metadata:
+      cwe: ["CWE-502: Deserialization of Untrusted Data"]
+    patterns:
+      - pattern: JsonConvert.DeserializeObject<$T>($DATA)

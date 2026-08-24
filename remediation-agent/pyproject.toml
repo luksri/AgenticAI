@@ -14,6 +14,7 @@ dependencies = [
     "langgraph-checkpoint-sqlite>=2.0",
     "eagv3-s17code",
     "langchain-anthropic>=0.3",
+    "glc-v5",
 ]
 
 [dependency-groups]
@@ -31,6 +32,7 @@ packages = ["src/remediation_agent"]
 
 [tool.uv.sources]
 eagv3-s17code = { path = "../session-17/S17Code", editable = true }
+glc-v5 = { path = "../session-17/glc_v5", editable = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
