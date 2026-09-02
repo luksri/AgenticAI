@@ -21,9 +21,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from s17code.coding.exec import CommandError, run_command
 from s17code.coding.workspace import Workspace, WorkspaceError
 
+from remediation_agent.coding.exec import CommandError, run_command
 from remediation_agent.config import get_settings
 from remediation_agent.graph.nodes.unit._git_identity import ensure_git_identity
 

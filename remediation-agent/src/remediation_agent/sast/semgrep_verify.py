@@ -21,8 +21,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from s17code.coding.exec import CommandError, run_command
 from s17code.coding.workspace import Workspace
+
+from remediation_agent.coding.exec import CommandError, run_command
 
 DEFAULT_TIMEOUT_SECONDS = 120
 

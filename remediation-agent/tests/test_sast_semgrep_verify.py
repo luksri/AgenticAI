@@ -3,7 +3,8 @@ from __future__ import annotations
 import shutil
 
 import pytest
-from s17code.coding.exec import CommandError
+
+from remediation_agent.coding.exec import CommandError
 
 from remediation_agent.sast import semgrep_verify as semgrep_verify_module
 from remediation_agent.sast.semgrep_verify import run_semgrep_verify

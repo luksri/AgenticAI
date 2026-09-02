@@ -34,9 +34,10 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.tools import tool
 
 from s17code.coding.edit import EditLedger, apply_edit, read_code
-from s17code.coding.exec import CommandError, run_command
 from s17code.coding.search import glob_files, grep_code
 from s17code.coding.workspace import Workspace
+
+from remediation_agent.coding.exec import CommandError, run_command
 
 SYSTEM_PROMPT = (
     "You are patching one specific, already-identified security "

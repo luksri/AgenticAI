@@ -23,9 +23,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from s17code.coding.exec import CommandError, run_command
 from s17code.coding.workspace import Workspace
 
+from remediation_agent.coding.exec import CommandError, run_command
 from remediation_agent.config import get_settings
 from remediation_agent.ecosystems.base import GateCommandUnsafeError
 from remediation_agent.ecosystems.registry import get as get_adapter
